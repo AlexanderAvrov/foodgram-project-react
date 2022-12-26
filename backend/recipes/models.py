@@ -77,7 +77,7 @@ class IngredientRecipe(models.Model):
     ingredient = models.ForeignKey(
         Ingredient, verbose_name='Ингредиент в рецепте',
         related_name='ingredient_for_recipe', on_delete=models.CASCADE)
-    amount = models.CharField(
+    amount = models.PositiveIntegerField(
         verbose_name='Количество', blank=False, max_length=64)
 
     class Meta:

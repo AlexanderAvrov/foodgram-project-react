@@ -1,11 +1,12 @@
 import base64
 
 from django.core.files.base import ContentFile
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers, exceptions
 from rest_framework.validators import UniqueValidator
 
 from recipes.models import (Recipe, Tag, Ingredient, IngredientRecipe,
-                              Subscription, Favorite)
+                              Subscription, Favorite, TagRecipe)
 from shopping_cart.models import ShoppingCart
 from users.models import User
 
@@ -65,6 +66,7 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'color', 'slug')
 
 
+
 class IngredientSerializer(serializers.ModelSerializer):
     """Сериалайзер для ингредиентов"""
 
@@ -96,6 +98,48 @@ class Base64ImageField(serializers.ImageField):
         return super().to_internal_value(data)
 
 
+class AddIngredientSerializer(serializers.ModelSerializer):
+    id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
+    amount = serializers.IntegerField()
+
+    class Meta:
+        model = IngredientRecipe
+        fields = ('id', 'amount')
+
+
+class RecipeAddSerializer(serializers.ModelSerializer):
+    """Сериалайзер для добавления рецептов"""
+
+    tags = serializers.ListField()
+    image = Base64ImageField()
+    ingredients = serializers.ListField()
+    author = serializers.ReadOnlyField(required=False)
+
+    class Meta:
+        model = Recipe
+        fields = ('tags', 'author', 'ingredients', 'name', 'image', 'text',
+                  'cooking_time')
+
+    def create(self, validated_data):
+        ingredients = validated_data.pop('ingredients')
+        tags = validated_data.pop('tags')
+        recipe = Recipe.objects.create(**validated_data)
+        for tag in tags:
+            tag_object = get_object_or_404(Tag, id=tag)
+            TagRecipe.objects.create(tag=tag_object, recipe=recipe)
+        for ingredient in ingredients:
+            ingredient_obj = get_object_or_404(Ingredient, id=ingredient.get('id'))
+            IngredientRecipe.objects.create(
+                ingredient=ingredient_obj,
+                recipe=recipe, amount=ingredient.get('amount'))
+        return recipe
+
+    def to_representation(self, instance):
+        request = self.context.get('request')
+        serializer = RecipeSerializer(instance, context={'request': request})
+        return serializer.data
+
+
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериалайзер для рецептов"""
 
@@ -112,6 +156,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         fields = ('id', 'tags', 'author', 'ingredients', 'is_favorited',
                   'is_in_shopping_cart', 'name', 'image', 'text',
                   'cooking_time')
+        read_only_fields = ('tags', 'author', 'ingredients')
 
     def validate_cooking_time(self, value):
         if value <= 0:
@@ -139,19 +184,18 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
-
-        # Создадим нового котика пока без достижений, данных нам достаточно
+        tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
-
-        # Для каждого достижения из списка достижений
+        for tag in tags:
+            TagRecipe.objects.create(tag=tag, recipe=recipe)
         for ingredient in ingredients:
-            # Создадим новую запись или получим существующий экземпляр из БД
-            current_ingredient, status = Ingredient.objects.get_or_create(
-                **ingredient)
             IngredientRecipe.objects.create(
-                current_ingredient, recipe=recipe, **ingredient)
+                ingredient=ingredient.get('id'),
+                recipe=recipe, amount=ingredient.get('amount'))
         return recipe
 
+    def update(self, instance, validated_data):
+        pass
 
 class RecipeSmallSerializer(serializers.ModelSerializer):
     """Сериалайзер для короткого вывода рецептов"""

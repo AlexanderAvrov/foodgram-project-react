@@ -15,7 +15,7 @@ from .mixins import PostDeleteViewSet, ListViewSet
 from .serializers import (
     JWTTokenSerializer, UserReadSerializer, UserPostSerializer,
     IngredientSerializer, RecipeSerializer, TagSerializer, FavoriteSerializer,
-    SubscriptionsSerializer, RecipeSmallSerializer)
+    SubscriptionsSerializer, RecipeSmallSerializer, RecipeAddSerializer)
 from recipes.models import Recipe, Tag, Ingredient, Subscription, Favorite
 from shopping_cart.models import ShoppingCart
 from users.models import User
@@ -26,9 +26,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     queryset = Recipe.objects.all().order_by('-id')
     permission_classes = (OwnerOrReadPermission,)
-    serializer_class = RecipeSerializer
+    # serializer_class = RecipeSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_fields = ('tags', 'author',)
+
+    def get_serializer_class(self):
+        """Определение сериалайзера для пользователей"""
+        if self.action in ('create', 'partial_update'):
+            return RecipeAddSerializer
+        return RecipeSerializer
 
     def perform_create(self, serializer):
         """Переопределение метода создания поста"""
