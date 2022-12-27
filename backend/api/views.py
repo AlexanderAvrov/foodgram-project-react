@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import SlidingToken, RefreshToken
 
+from .filters import IngredientFilter, RecipeFilter
 from .permissions import OwnerOrReadPermission
 from .mixins import PostDeleteViewSet, ListViewSet
 from .serializers import (
@@ -28,7 +29,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     permission_classes = (OwnerOrReadPermission,)
     # serializer_class = RecipeSerializer
     filter_backends = (DjangoFilterBackend,)
-    filterset_fields = ('tags', 'author',)
+    filterset_class = RecipeFilter
 
     def get_serializer_class(self):
         """Определение сериалайзера для пользователей"""
@@ -55,8 +56,8 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     pagination_class = None
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
 
 
 class ShoppingCartAPIView(APIView):

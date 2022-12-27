@@ -2,7 +2,7 @@ from django.core.validators import MinValueValidator
 from django.db import models
 
 from users.models import User
-from foodgram.constants import MIN_TIME, MESSAGE_ERR_TIME
+from foodgram.constants import MIN_VALUE, MESSAGE_ERR_TIME, MESSAGE_ERR_AMOUNT
 
 
 class Ingredient(models.Model):
@@ -56,7 +56,7 @@ class Recipe(models.Model):
     )
     cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время приготовления',
-        validators=[MinValueValidator(MIN_TIME, message=MESSAGE_ERR_TIME)]
+        validators=[MinValueValidator(MIN_VALUE, message=MESSAGE_ERR_TIME)]
     )
     tags = models.ManyToManyField(Tag, through='TagRecipe')
 
@@ -78,7 +78,8 @@ class IngredientRecipe(models.Model):
         Ingredient, verbose_name='Ингредиент в рецепте',
         related_name='ingredient_for_recipe', on_delete=models.CASCADE)
     amount = models.PositiveIntegerField(
-        verbose_name='Количество', blank=False, max_length=64)
+        verbose_name='Количество', blank=False,
+        validators=[MinValueValidator(MIN_VALUE, message=MESSAGE_ERR_AMOUNT)])
 
     class Meta:
         verbose_name = 'Ingredient for recipe'

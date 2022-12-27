@@ -66,7 +66,6 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'color', 'slug')
 
 
-
 class IngredientSerializer(serializers.ModelSerializer):
     """Сериалайзер для ингредиентов"""
 
@@ -98,15 +97,6 @@ class Base64ImageField(serializers.ImageField):
         return super().to_internal_value(data)
 
 
-class AddIngredientSerializer(serializers.ModelSerializer):
-    id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
-    amount = serializers.IntegerField()
-
-    class Meta:
-        model = IngredientRecipe
-        fields = ('id', 'amount')
-
-
 class RecipeAddSerializer(serializers.ModelSerializer):
     """Сериалайзер для добавления рецептов"""
 
@@ -119,6 +109,14 @@ class RecipeAddSerializer(serializers.ModelSerializer):
         model = Recipe
         fields = ('tags', 'author', 'ingredients', 'name', 'image', 'text',
                   'cooking_time')
+
+    def validate(self, data):
+        for ingredient in data.get('ingredients'):
+            if int(ingredient.get('amount')) <= 0:
+                raise serializers.ValidationError(
+                    'Количество ингредиента должно быть больше 0.'
+                )
+        return data
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
@@ -133,6 +131,27 @@ class RecipeAddSerializer(serializers.ModelSerializer):
                 ingredient=ingredient_obj,
                 recipe=recipe, amount=ingredient.get('amount'))
         return recipe
+
+    def update(self, instance, validated_data):
+        tags = validated_data.pop('tags', instance.tags)
+        ingredients = validated_data.pop('ingredients', instance.ingredients)
+        instance.name = validated_data.get('name', instance.name)
+        instance.image = validated_data.get('image', instance.image)
+        instance.text = validated_data.get('text', instance.text)
+        instance.cooking_time = validated_data.get(
+            'cooking_time', instance.cooking_time)
+        TagRecipe.objects.filter(recipe=instance).delete()
+        IngredientRecipe.objects.filter(recipe=instance).delete()
+        for tag in tags:
+            tag_object = get_object_or_404(Tag, id=tag)
+            TagRecipe.objects.create(tag=tag_object, recipe=instance)
+        for ingredient in ingredients:
+            ingredient_obj = get_object_or_404(Ingredient, id=ingredient.get('id'))
+            IngredientRecipe.objects.create(
+                ingredient=ingredient_obj,
+                recipe=instance, amount=ingredient.get('amount'))
+        instance.save()
+        return instance
 
     def to_representation(self, instance):
         request = self.context.get('request')
