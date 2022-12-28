@@ -1,21 +1,22 @@
-from django.contrib.auth.tokens import default_token_generator
-from django.shortcuts import get_object_or_404, get_list_or_404
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import (
-    IsAuthenticatedOrReadOnly, IsAuthenticated, AllowAny)
+    IsAuthenticated, AllowAny)
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import SlidingToken, RefreshToken
+from rest_framework_simplejwt.tokens import SlidingToken
 
+from api.pagination import CustomPagination
+from shopping_cart.download_cart import download_ingredients
 from .filters import IngredientFilter, RecipeFilter
 from .permissions import OwnerOrReadPermission
-from .mixins import PostDeleteViewSet, ListViewSet
 from .serializers import (
     JWTTokenSerializer, UserReadSerializer, UserPostSerializer,
-    IngredientSerializer, RecipeSerializer, TagSerializer, FavoriteSerializer,
+    IngredientSerializer, RecipeSerializer, TagSerializer,
     SubscriptionsSerializer, RecipeSmallSerializer, RecipeAddSerializer)
 from recipes.models import Recipe, Tag, Ingredient, Subscription, Favorite
 from shopping_cart.models import ShoppingCart
@@ -27,7 +28,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     queryset = Recipe.objects.all().order_by('-id')
     permission_classes = (OwnerOrReadPermission,)
-    # serializer_class = RecipeSerializer
+    pagination_class = CustomPagination
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
 
@@ -40,6 +41,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Переопределение метода создания поста"""
         serializer.save(author=self.request.user)
+
+    @action(detail=False, methods=('get',),
+            url_name='download_shopping_cart', permission_classes=(IsAuthenticated,))
+    def download_shopping_cart(self, request, *args, **kwargs):
+        ingredients = download_ingredients(request.user)
+        return HttpResponse(
+            ingredients,
+            content_type='text/plain,charset=utf8',
+            status=status.HTTP_200_OK
+        )
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -143,6 +154,7 @@ class SubscriptionsListAPIView(ListAPIView):
 
     serializer_class = SubscriptionsSerializer
     permission_classes = (IsAuthenticated,)
+    pagination_class = CustomPagination
 
     def get_queryset(self):
         user = self.request.user
@@ -182,7 +194,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def subscriptions(self, request, *args, **kwargs):
         subscriptions = User.objects.filter(author_recipes__user=request.user.id).all()
         queryset = self.request.user.subscriber.all()
-        serializer = SubscribtionsSerializer(context={'request': request}, many=True)
+        serializer = SubscriptionsSerializer(context={'request': request}, many=True)
         return Response(serializer.data)
 """
 

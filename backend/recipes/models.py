@@ -96,6 +96,10 @@ class TagRecipe(models.Model):
     tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
 
     class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=['recipe', 'tag'],
+            name='unique_tag',
+        )]
         verbose_name = 'Tag for recipe'
         verbose_name_plural = 'Tags for recipe'
 

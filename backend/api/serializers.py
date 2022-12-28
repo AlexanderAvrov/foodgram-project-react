@@ -111,6 +111,10 @@ class RecipeAddSerializer(serializers.ModelSerializer):
                   'cooking_time')
 
     def validate(self, data):
+        if data['cooking_time'] <= 0:
+            raise serializers.ValidationError(
+                'Время приготовления должно быть больше 0.'
+            )
         for ingredient in data.get('ingredients'):
             if int(ingredient.get('amount')) <= 0:
                 raise serializers.ValidationError(
@@ -177,12 +181,6 @@ class RecipeSerializer(serializers.ModelSerializer):
                   'cooking_time')
         read_only_fields = ('tags', 'author', 'ingredients')
 
-    def validate_cooking_time(self, value):
-        if value <= 0:
-            raise serializers.ValidationError(
-                'Время приготовления должно быть больше 0')
-        return value
-
     def get_is_favorited(self, obj):
         """Метод определения рецепта в избранном"""
         request = self.context.get('request')
@@ -201,20 +199,6 @@ class RecipeSerializer(serializers.ModelSerializer):
             user=request.user, recipe=obj
         ).exists()
 
-    def create(self, validated_data):
-        ingredients = validated_data.pop('ingredients')
-        tags = validated_data.pop('tags')
-        recipe = Recipe.objects.create(**validated_data)
-        for tag in tags:
-            TagRecipe.objects.create(tag=tag, recipe=recipe)
-        for ingredient in ingredients:
-            IngredientRecipe.objects.create(
-                ingredient=ingredient.get('id'),
-                recipe=recipe, amount=ingredient.get('amount'))
-        return recipe
-
-    def update(self, instance, validated_data):
-        pass
 
 class RecipeSmallSerializer(serializers.ModelSerializer):
     """Сериалайзер для короткого вывода рецептов"""
@@ -227,8 +211,8 @@ class RecipeSmallSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'name', 'image', 'cooking_time')
 
 
+"""
 class FavoriteSerializer(serializers.ModelSerializer):
-    """Сериалайзер для избранного"""
 
     class Meta:
         fields = ()
@@ -240,7 +224,6 @@ class FavoriteSerializer(serializers.ModelSerializer):
         return serializer.data
 
 
-"""
 class SubscribeSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -282,7 +265,13 @@ class SubscriptionsSerializer(serializers.ModelSerializer):
 
     def get_recipes(self, obj):
         """Метод получения рецептов автора"""
-        queryset = Recipe.objects.filter(author=obj.author).all()
+        request = self.context.get('request')
+        if request.GET.get('recipes_limit'):
+            recipe_limit = int(request.GET.get('recipes_limit'))
+            queryset = Recipe.objects.filter(
+                author=obj.author).all()[:recipe_limit]
+        else:
+            queryset = Recipe.objects.filter(author=obj.author).all()
         serializer = RecipeSmallSerializer(
             queryset, read_only=True, many=True
         )
