@@ -1,15 +1,16 @@
 from django.core.validators import MinValueValidator
 from django.db import models
 
+from foodgram.constants import MESSAGE_ERR_AMOUNT, MESSAGE_ERR_TIME, MIN_VALUE
 from users.models import User
-from foodgram.constants import MIN_VALUE, MESSAGE_ERR_TIME, MESSAGE_ERR_AMOUNT
 
 
 class Ingredient(models.Model):
     """Модель ингредиентов"""
 
     name = models.CharField(verbose_name='Ингредиент', max_length=200)
-    measurement_unit = models.CharField(verbose_name='Единица измерения', max_length=200)
+    measurement_unit = models.CharField(
+        verbose_name='Единица измерения', max_length=200)
 
     class Meta:
         verbose_name = 'Ingredient'

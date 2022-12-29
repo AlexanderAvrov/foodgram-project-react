@@ -4,23 +4,21 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView
-from rest_framework.permissions import (
-    IsAuthenticated, AllowAny)
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import SlidingToken
 
 from api.pagination import CustomPagination
+from recipes.models import Favorite, Ingredient, Recipe, Subscription, Tag
 from shopping_cart.download_cart import download_ingredients
-from .filters import IngredientFilter, RecipeFilter
-from .permissions import OwnerOrReadPermission
-from .serializers import (
-    JWTTokenSerializer, UserReadSerializer, UserPostSerializer,
-    IngredientSerializer, RecipeSerializer, TagSerializer,
-    SubscriptionsSerializer, RecipeSmallSerializer, RecipeAddSerializer)
-from recipes.models import Recipe, Tag, Ingredient, Subscription, Favorite
 from shopping_cart.models import ShoppingCart
 from users.models import User
+
+from .filters import IngredientFilter, RecipeFilter
+from .permissions import OwnerOrReadPermission
+from .serializers import (IngredientSerializer, RecipeAddSerializer,
+                          RecipeSerializer, RecipeSmallSerializer,
+                          SubscriptionsSerializer, TagSerializer,)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -45,11 +43,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=('get',),
             url_name='download_shopping_cart', permission_classes=(IsAuthenticated,))
     def download_shopping_cart(self, request, *args, **kwargs):
+        """Метод для скачивания списка покупок"""
         ingredients = download_ingredients(request.user)
         return HttpResponse(
             ingredients,
             content_type='text/plain,charset=utf8',
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
 
@@ -86,15 +85,18 @@ class ShoppingCartAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST)
         cart = ShoppingCart.objects.create(user=request.user, recipe=recipe)
         serializer = RecipeSmallSerializer(cart.recipe)
-
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def delete(self, request, recipe_id):  # TODO: прописать 400-е ошибки
+    def delete(self, request, recipe_id):
+        """Метод удаления рецепта из списка покупок"""
         recipe = get_object_or_404(Recipe, id=recipe_id)
-        ShoppingCart.objects.filter(user=request.user, recipe=recipe).delete()
-
-        return Response({'message': 'Рецепт успешно удален из корзины'},
-                        status=status.HTTP_204_NO_CONTENT)
+        cart = ShoppingCart.objects.filter(user=request.user, recipe=recipe)
+        if cart:
+            cart.delete()
+            return Response({'message': 'Рецепт успешно удален из корзины'},
+                            status=status.HTTP_204_NO_CONTENT)
+        return Response({'message': 'Рецепта не было в корзине'},
+                        status=status.HTTP_400_BAD_REQUEST)
 
 
 class FavoriteAPIView(APIView):
@@ -117,10 +119,13 @@ class FavoriteAPIView(APIView):
 
     def delete(self, request, recipe_id):  # TODO: прописать 400-е ошибки
         recipe = get_object_or_404(Recipe, id=recipe_id)
-        Favorite.objects.filter(user=request.user, recipe=recipe).delete()
-
-        return Response({'message': 'Рецепт успешно удален из избранного'},
-                        status=status.HTTP_204_NO_CONTENT)
+        favor = Favorite.objects.filter(user=request.user, recipe=recipe)
+        if favor:
+            favor.delete()
+            return Response({'message': 'Рецепт успешно удален из избранного'},
+                            status=status.HTTP_204_NO_CONTENT)
+        return Response({'message': 'Рецепта не было в избранном'},
+                        status=status.HTTP_400_BAD_REQUEST)
 
 
 class SubscribeAPIView(APIView):
@@ -128,7 +133,8 @@ class SubscribeAPIView(APIView):
 
     permission_classes = (IsAuthenticated,)
 
-    def post(self, request, user_id):   # TODO: сделать сериализатор для отображения после публикации
+    def post(self, request, user_id):
+        """Метод для создания экземпляра подписки"""
         author = get_object_or_404(User, id=user_id)
         if self.request.user == author or Subscription.objects.filter(
                 user=request.user, author=author).exists():
@@ -141,12 +147,15 @@ class SubscribeAPIView(APIView):
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def delete(self, request, user_id):  # TODO: прописать 400-е ошибки
+    def delete(self, request, user_id):
         author = get_object_or_404(User, id=user_id)
-        Subscription.objects.filter(user=request.user, author=author).delete()
-
-        return Response({'message': 'Подписка успешно удалена'},
-                        status=status.HTTP_204_NO_CONTENT)
+        obj = Subscription.objects.filter(user=request.user, author=author)
+        if obj:
+            obj.delete()
+            return Response({'message': 'Подписка успешно удалена'},
+                            status=status.HTTP_204_NO_CONTENT)
+        return Response({'message': 'У вас не было такой подписки'},
+                        status=status.HTTP_400_BAD_REQUEST)
 
 
 class SubscriptionsListAPIView(ListAPIView):
@@ -159,69 +168,3 @@ class SubscriptionsListAPIView(ListAPIView):
     def get_queryset(self):
         user = self.request.user
         return user.subscriber.all()
-
-
-class UserViewSet(viewsets.ModelViewSet):
-    """Вью сет для пользователей"""
-
-    queryset = User.objects.all()
-    permission_classes = (AllowAny,)
-
-    def get_serializer_class(self):
-        """Определение сериалайзера для пользователей"""
-        if self.action in ('list', 'retrieve'):
-            return UserReadSerializer
-        return UserPostSerializer
-
-    @action(detail=False, methods=('get',),
-            url_name='me', permission_classes=(IsAuthenticated,))
-    def me(self, request, *args, **kwargs):
-        serializer = UserReadSerializer(request.user, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    @action(detail=False, methods=('post',),
-            url_name='set_password', permission_classes=(IsAuthenticated,))
-    def set_password(self, request, *args, **kwargs):
-        serializer = UserPostSerializer(
-            request.user, data=request.data, partial=True, many=False)
-        if serializer.is_valid(raise_exception=True):
-            serializer.save()
-            return Response(status=status.HTTP_200_OK)
-
-"""
-    @action(detail=False, methods=('get',),
-            url_name='subscriptions', permission_classes=(IsAuthenticated,))
-    def subscriptions(self, request, *args, **kwargs):
-        subscriptions = User.objects.filter(author_recipes__user=request.user.id).all()
-        queryset = self.request.user.subscriber.all()
-        serializer = SubscriptionsSerializer(context={'request': request}, many=True)
-        return Response(serializer.data)
-"""
-
-
-class APIToken(APIView):
-    """Вью класс для получения токена"""
-
-    permission_classes = (AllowAny,)
-
-    def post(self, request):
-        serializer = JWTTokenSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = get_object_or_404(User, email=serializer.data['email'])
-        token = SlidingToken.for_user(user)
-
-        return Response({'token': str(token)}, status=status.HTTP_200_OK)
-
-
-class Logout(APIView):
-    """Вью класс для удаления токена"""
-
-    permission_classes = (IsAuthenticated,)
-
-    def post(self, request):
-        try:
-            token = request.auth
-            token.blacklist()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except Exception as e:
-            return Response(status=status.HTTP_400_BAD_REQUEST)

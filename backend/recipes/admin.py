@@ -1,16 +1,18 @@
 from django.contrib import admin
 
-from .models import (Recipe, Tag, Ingredient, IngredientRecipe, TagRecipe,
-                     Subscription, Favorite)
+from .models import (Favorite, Ingredient, IngredientRecipe, Recipe,
+                     Subscription, Tag, TagRecipe)
 
 
 class IngredientRecipeAdminInLine(admin.TabularInline):
     model = IngredientRecipe
     extra = 3
 
+
 class TagRecipeAdminInLine(admin.TabularInline):
     model = TagRecipe
     extra = 3
+
 
 class RecipeAdmin(admin.ModelAdmin):
     """Настройки админ панели для модели Рецептов"""

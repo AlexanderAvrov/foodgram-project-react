@@ -23,7 +23,6 @@ INSTALLED_APPS = [
     'recipes',
     'users',
     'shopping_cart',
-
 ]
 
 MIDDLEWARE = [
@@ -58,12 +57,12 @@ WSGI_APPLICATION = 'foodgram.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'foodgram',
-        'USER': 'foodgram_user',
-        'PASSWORD': 'Chikony8',
-        'HOST': '127.0.0.1',
-        'PORT': '5432'
+        'ENGINE': os.getenv('DB_ENGINE', default='django.db.backends.postgresql'),
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('POSTGRES_USER'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
     }
 }
 
