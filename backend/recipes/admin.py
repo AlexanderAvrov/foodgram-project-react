@@ -17,14 +17,14 @@ class TagRecipeAdminInLine(admin.TabularInline):
 class RecipeAdmin(admin.ModelAdmin):
     """Настройки админ панели для модели Рецептов"""
 
-    list_display = ('id', 'name', 'author', 'cooking_time')
+    list_display = ('id', 'name', 'author', 'cooking_time', 'pub_date')
     search_fields = ('name',)
     list_filter = ('tags', 'name', 'author')
     inlines = (IngredientRecipeAdminInLine, TagRecipeAdminInLine)
 
     fieldsets = (
         ('Основные данные', {
-            'fields': ('name', 'author', 'image')
+            'fields': ('name', 'author', 'image', 'pub_date')
         }),
         ('Приготовление', {
             'fields': ('text', 'cooking_time')
@@ -33,7 +33,7 @@ class RecipeAdmin(admin.ModelAdmin):
             'fields': ('in_favorite_count', 'in_cart_count')
         })
     )
-    readonly_fields = ('in_favorite_count', 'in_cart_count')
+    readonly_fields = ('in_favorite_count', 'in_cart_count', 'pub_date')
 
     def in_favorite_count(self, obj):
         return obj.recipe_in_favorite.count()

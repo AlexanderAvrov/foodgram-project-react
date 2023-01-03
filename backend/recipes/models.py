@@ -39,29 +39,24 @@ class Recipe(models.Model):
     """Модель рецептов"""
 
     author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='recipes',
-        verbose_name='Автор рецепта',
-    )
+        User, on_delete=models.CASCADE, related_name='recipes',
+        verbose_name='Автор рецепта')
     name = models.CharField(verbose_name='Название рецепта', max_length=200)
     image = models.ImageField(
-        verbose_name='Изображение',
-        upload_to='recipes/',
-        help_text='Загрузите изображение',
-    )
+        verbose_name='Изображение', upload_to='recipes/',
+        help_text='Загрузите изображение')
     text = models.TextField(verbose_name='Описание рецепта')
     ingredients = models.ManyToManyField(
-        Ingredient,
-        through='IngredientRecipe'
-    )
+        Ingredient, through='IngredientRecipe')
     cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время приготовления',
-        validators=[MinValueValidator(MIN_VALUE, message=MESSAGE_ERR_TIME)]
-    )
+        validators=[MinValueValidator(MIN_VALUE, message=MESSAGE_ERR_TIME)])
     tags = models.ManyToManyField(Tag, through='TagRecipe')
+    pub_date = models.DateTimeField(
+        auto_now_add=True, verbose_name='Дата публикации')
 
     class Meta:
+        ordering = ('-pub_date',)
         verbose_name = 'Recipe'
         verbose_name_plural = 'Recipes'
 
@@ -83,6 +78,10 @@ class IngredientRecipe(models.Model):
         validators=[MinValueValidator(MIN_VALUE, message=MESSAGE_ERR_AMOUNT)])
 
     class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=['recipe', 'ingredient'],
+            name='unique_ingredient',
+        )]
         verbose_name = 'Ingredient for recipe'
         verbose_name_plural = 'Ingredients for recipe'
 
@@ -112,17 +111,11 @@ class Favorite(models.Model):
     """Модель избранного рецепта"""
 
     user = models.ForeignKey(
-        User,
-        verbose_name='Юзер добавивший в избранное',
-        on_delete=models.CASCADE,
-        related_name='is_favorited',
-    )
+        User, verbose_name='Юзер добавивший в избранное',
+        on_delete=models.CASCADE, related_name='is_favorited')
     recipe = models.ForeignKey(
-        Recipe,
-        verbose_name='Избранный рецепт',
-        on_delete=models.CASCADE,
-        related_name='recipe_in_favorite',
-    )
+        Recipe, verbose_name='Избранный рецепт', on_delete=models.CASCADE,
+        related_name='recipe_in_favorite')
 
     class Meta:
         constraints = [models.UniqueConstraint(
@@ -140,17 +133,11 @@ class Subscription(models.Model):
     """Модель подписки"""
 
     user = models.ForeignKey(
-        User,
-        verbose_name='Подписавшийся',
-        on_delete=models.CASCADE,
-        related_name='subscriber',
-    )
+        User, verbose_name='Подписавшийся', on_delete=models.CASCADE,
+        related_name='subscriber')
     author = models.ForeignKey(
-        User,
-        verbose_name='Подписан на:',
-        on_delete=models.CASCADE,
-        related_name='author_recipes',
-    )
+        User, verbose_name='Подписан на:', on_delete=models.CASCADE,
+        related_name='author_recipes')
 
     class Meta:
         constraints = [models.UniqueConstraint(

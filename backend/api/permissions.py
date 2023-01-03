@@ -12,4 +12,5 @@ class OwnerOrReadPermission(permissions.BasePermission):
         return (
             request.method in permissions.SAFE_METHODS
             or request.user.is_staff
+            or request.user.is_superuser
             or obj.author == request.user)

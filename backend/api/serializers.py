@@ -26,10 +26,9 @@ class UserReadSerializer(serializers.ModelSerializer):
     def get_is_subscribed(self, obj):
         """Метод определения подписки на автора"""
         request = self.context.get('request')
-        if request.user.is_anonymous or request.user == obj:
-            return False
-        return Subscription.objects.filter(
-                    user=request.user, author=obj).exists()
+        return (not request.user.is_anonymous and request.user != obj and
+                Subscription.objects.filter(
+                    user=request.user, author=obj).exists())
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -91,11 +90,16 @@ class RecipeAddSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Время приготовления должно быть больше 0.'
             )
+        ingredients = []
         for ingredient in data.get('ingredients'):
             if int(ingredient.get('amount')) <= 0:
                 raise serializers.ValidationError(
-                    'Количество ингредиента должно быть больше 0.'
-                )
+                    'Количество ингредиента должно быть больше 0.')
+            id_ingredient = ingredient.get('id')
+            if id_ingredient in ingredients:
+                raise serializers.ValidationError(
+                    'Ингредиент не должен повторяться.')
+            ingredients.append(id_ingredient)
         return data
 
     def create(self, validated_data):
@@ -165,18 +169,16 @@ class RecipeSerializer(serializers.ModelSerializer):
     def get_is_favorited(self, obj):
         """Метод определения рецепта в избранном"""
         request = self.context.get('request')
-        if request.user.is_anonymous:
-            return False
-        return Favorite.objects.filter(
-            user=request.user, recipe=obj).exists()
+        return (not request.user.is_anonymous and
+                Favorite.objects.filter(
+                    user=request.user, recipe=obj).exists())
 
     def get_is_in_shopping_cart(self, obj):
         """Метод определения рецепта в избранном"""
         request = self.context.get('request')
-        if request.user.is_anonymous:
-            return False
-        return ShoppingCart.objects.filter(
-            user=request.user, recipe=obj).exists()
+        return (not request.user.is_anonymous and
+                ShoppingCart.objects.filter(
+                    user=request.user, recipe=obj).exists())
 
 
 class RecipeSmallSerializer(serializers.ModelSerializer):
@@ -210,10 +212,9 @@ class SubscriptionsSerializer(serializers.ModelSerializer):
     def get_is_subscribed(self, obj):
         """Метод определения подписки на автора"""
         request = self.context.get('request')
-        if request.user == obj.author:
-            return False
-        return Subscription.objects.filter(
-                    user=request.user, author=obj.author).exists()
+        return (not request.user == obj.author and
+                Subscription.objects.filter(
+                    user=request.user, author=obj.author).exists())
 
     def get_recipes(self, obj):
         """Метод получения рецептов автора"""

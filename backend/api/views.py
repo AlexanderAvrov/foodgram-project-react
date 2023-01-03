@@ -13,7 +13,6 @@ from recipes.models import Favorite, Ingredient, Recipe, Subscription, Tag
 from shopping_cart.download_cart import download_ingredients
 from shopping_cart.models import ShoppingCart
 from users.models import User
-
 from .filters import IngredientFilter, RecipeFilter
 from .permissions import OwnerOrReadPermission
 from .serializers import (IngredientSerializer, RecipeAddSerializer,
@@ -24,7 +23,7 @@ from .serializers import (IngredientSerializer, RecipeAddSerializer,
 class RecipeViewSet(viewsets.ModelViewSet):
     """Вью сет для рецептов"""
 
-    queryset = Recipe.objects.all().order_by('-id')
+    queryset = Recipe.objects.all()
     permission_classes = (OwnerOrReadPermission,)
     pagination_class = CustomPagination
     filter_backends = (DjangoFilterBackend,)
@@ -83,16 +82,17 @@ class ShoppingCartAPIView(APIView):
             return Response(
                 {'error': 'Вы уже добавили этот рецепт в корзину'},
                 status=status.HTTP_400_BAD_REQUEST)
-        cart = ShoppingCart.objects.create(user=request.user, recipe=recipe)
-        serializer = RecipeSmallSerializer(cart.recipe)
+        recipe_in_cart = ShoppingCart.objects.create(
+            user=request.user, recipe=recipe)
+        serializer = RecipeSmallSerializer(recipe_in_cart.recipe)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, recipe_id):
         """Метод удаления рецепта из списка покупок"""
-        recipe = get_object_or_404(Recipe, id=recipe_id)
-        cart = ShoppingCart.objects.filter(user=request.user, recipe=recipe)
-        if cart:
-            cart.delete()
+        recipe_in_cart = ShoppingCart.objects.filter(
+            user=request.user, recipe=recipe_id)
+        if recipe_in_cart.exists():
+            recipe_in_cart.delete()
             return Response({'message': 'Рецепт успешно удален из корзины'},
                             status=status.HTTP_204_NO_CONTENT)
         return Response({'message': 'Рецепта не было в корзине'},
@@ -112,16 +112,18 @@ class FavoriteAPIView(APIView):
             return Response(
                 {'error': 'Вы уже добавили этот рецепт в избранное'},
                 status=status.HTTP_400_BAD_REQUEST)
-        favorite = Favorite.objects.create(user=request.user, recipe=recipe)
-        serializer = RecipeSmallSerializer(favorite.recipe)
+        favorite_recipe = Favorite.objects.create(
+            user=request.user, recipe=recipe)
+        serializer = RecipeSmallSerializer(favorite_recipe.recipe)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def delete(self, request, recipe_id):  # TODO: прописать 400-е ошибки
+    def delete(self, request, recipe_id):
         recipe = get_object_or_404(Recipe, id=recipe_id)
-        favor = Favorite.objects.filter(user=request.user, recipe=recipe)
-        if favor:
-            favor.delete()
+        favorite_recipe = Favorite.objects.filter(
+            user=request.user, recipe=recipe)
+        if favorite_recipe.exists():
+            favorite_recipe.delete()
             return Response({'message': 'Рецепт успешно удален из избранного'},
                             status=status.HTTP_204_NO_CONTENT)
         return Response({'message': 'Рецепта не было в избранном'},
@@ -137,21 +139,23 @@ class SubscribeAPIView(APIView):
         """Метод для создания экземпляра подписки"""
         author = get_object_or_404(User, id=user_id)
         if self.request.user == author or Subscription.objects.filter(
-                user=request.user, author=author).exists():
+                user=request.user, author=user_id).exists():
             return Response(
                 {'error': 'Вы пытаетесь подписаться на самого '
                  'себя или уже подписаны на этого автора'},
                 status=status.HTTP_400_BAD_REQUEST)
-        subscription = Subscription.objects.create(author=author, user=self.request.user)
-        serializer = SubscriptionsSerializer(subscription, context={'request': request})
+        subscription = Subscription.objects.create(
+            author=author, user=self.request.user)
+        serializer = SubscriptionsSerializer(
+            subscription, context={'request': request})
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, user_id):
-        author = get_object_or_404(User, id=user_id)
-        obj = Subscription.objects.filter(user=request.user, author=author)
-        if obj:
-            obj.delete()
+        subscription = Subscription.objects.filter(
+            user=request.user, author=user_id)
+        if subscription.exists():
+            subscription.delete()
             return Response({'message': 'Подписка успешно удалена'},
                             status=status.HTTP_204_NO_CONTENT)
         return Response({'message': 'У вас не было такой подписки'},
@@ -166,5 +170,4 @@ class SubscriptionsListAPIView(ListAPIView):
     pagination_class = CustomPagination
 
     def get_queryset(self):
-        user = self.request.user
-        return user.subscriber.all()
+        return self.request.user.subscriber.all()
