@@ -19,23 +19,21 @@ class Command(BaseCommand):
     """ Команда для загрузки данных в БД"""
 
     def handle(self, *args, **options):
-        for row in DictReader(open(DATA_PATCH['ingredients'], encoding='utf-8')):
-            ingredient = Ingredient(
-                id=row['id'],
-                name=row['name'],
-                measurement_unit=row['measurement_unit'],
-            )
-            ingredient.save()
+        Ingredient.objects.bulk_create(
+            [Ingredient(id=row['id'], name=row['name'],
+                        measurement_unit=row['measurement_unit'])
+             for row in DictReader(
+                open(DATA_PATCH['ingredients'], encoding='utf-8'))
+             ]
+        )
 
         logging.info('База Ингредиентов загружена')
 
-        for row in DictReader(open(DATA_PATCH['tags'], encoding='utf-8')):
-            tag = Tag(
-                id=row['id'],
-                name=row['name'],
-                color=row['color'],
-                slug=row['slug'],
-            )
-            tag.save()
+        Tag.objects.bulk_create(
+            [Tag(id=row['id'], name=row['name'], color=row['color'],
+                 slug=row['slug'])
+             for row in DictReader(open(DATA_PATCH['tags'], encoding='utf-8'))
+             ]
+        )
 
         logging.info('База Тегов загружена')

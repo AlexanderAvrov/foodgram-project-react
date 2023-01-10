@@ -2,13 +2,24 @@ import base64
 
 from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
-from rest_framework import exceptions, serializers
+from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
                             Subscription, Tag, TagRecipe)
 from shopping_cart.models import ShoppingCart
 from users.models import User
+
+
+def create_tags_ingredients_objects(tags, ingredients, recipe):
+    """Метод для создания Тегов и Ингредиентов для Рецептов"""
+    TagRecipe.objects.bulk_create([
+        TagRecipe(tag=get_object_or_404(Tag, id=tag),
+                  recipe=recipe) for tag in tags])
+    IngredientRecipe.objects.bulk_create([
+        IngredientRecipe(ingredient=get_object_or_404(
+            Ingredient, id=ingredient.get('id')), recipe=recipe,
+            amount=ingredient.get('amount')) for ingredient in ingredients])
 
 
 class UserReadSerializer(serializers.ModelSerializer):
@@ -107,15 +118,7 @@ class RecipeAddSerializer(serializers.ModelSerializer):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
-        for tag in tags:
-            tag_object = get_object_or_404(Tag, id=tag)
-            TagRecipe.objects.create(tag=tag_object, recipe=recipe)
-        for ingredient in ingredients:
-            ingredient_obj = get_object_or_404(
-                Ingredient, id=ingredient.get('id'))
-            IngredientRecipe.objects.create(
-                ingredient=ingredient_obj,
-                recipe=recipe, amount=ingredient.get('amount'))
+        create_tags_ingredients_objects(tags, ingredients, recipe)
         return recipe
 
     def update(self, instance, validated_data):
@@ -129,15 +132,7 @@ class RecipeAddSerializer(serializers.ModelSerializer):
             'cooking_time', instance.cooking_time)
         TagRecipe.objects.filter(recipe=instance).delete()
         IngredientRecipe.objects.filter(recipe=instance).delete()
-        for tag in tags:
-            tag_object = get_object_or_404(Tag, id=tag)
-            TagRecipe.objects.create(tag=tag_object, recipe=instance)
-        for ingredient in ingredients:
-            ingredient_obj = get_object_or_404(
-                Ingredient, id=ingredient.get('id'))
-            IngredientRecipe.objects.create(
-                ingredient=ingredient_obj,
-                recipe=instance, amount=ingredient.get('amount'))
+        create_tags_ingredients_objects(tags, ingredients, instance)
         instance.save()
         return instance
 

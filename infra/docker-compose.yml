@@ -8,7 +8,7 @@ services:
     env_file:
       - ./.env
   web:
-    build: ../backend/
+    image: alexavr/foodgram-backend:v.1.0
     restart: always
     volumes:
       - static_value:/app/static/
@@ -18,9 +18,7 @@ services:
     env_file:
       - ./.env
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
+    image: alexavr/foodgram-frontend:v.1.0
     volumes:
       - ../frontend/:/app/result_build/
     depends_on:
