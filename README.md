@@ -38,3 +38,6 @@ docker-compose exec web python manage.py procces_csv
 ```sh
 docker-compose stop
 ```
+
+### Над бэкендом проекта работал
+- Александр Авров / GitHub: https://github.com/AlexanderAvrov
