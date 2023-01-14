@@ -43,7 +43,7 @@ docker-compose stop
 ```
 
 ### Над бэкендом проекта работал
-- Александр Авров / GitHub: https://github.com/AlexanderAvrov
+- [Александр Авров](https://github.com/AlexanderAvrov)
 
 Фронтенд:
 - [@practicum-russia](https://github.com/yandex-praktikum)
