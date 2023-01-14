@@ -46,4 +46,4 @@ docker-compose stop
 - Александр Авров / GitHub: https://github.com/AlexanderAvrov
 
 Фронтенд:
-- @practicum-russia
+- [@practicum-russia](https://github.com/yandex-praktikum)
