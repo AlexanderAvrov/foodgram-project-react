@@ -5,7 +5,8 @@ from django.contrib.auth.models import AbstractUser
 class User(AbstractUser):
     """Модель пользователя"""
 
-    email = models.EmailField(verbose_name='Емейл', unique=True, max_length=254)
+    email = models.EmailField(
+        verbose_name='Емейл', unique=True, max_length=254)
     username = models.CharField(
         verbose_name='Имя пользователя',
         unique=True,

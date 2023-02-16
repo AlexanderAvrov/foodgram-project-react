@@ -26,8 +26,8 @@ class UserReadSerializer(serializers.ModelSerializer):
     def get_is_subscribed(self, obj):
         """Метод определения подписки на автора"""
         request = self.context.get('request')
-        return (not request.user.is_anonymous and request.user != obj and
-                Subscription.objects.filter(
+        return (not request.user.is_anonymous and request.user != obj
+                and Subscription.objects.filter(
                     user=request.user, author=obj).exists())
 
 
@@ -110,7 +110,8 @@ class RecipeAddSerializer(serializers.ModelSerializer):
         IngredientRecipe.objects.bulk_create([
             IngredientRecipe(ingredient=get_object_or_404(
                 Ingredient, id=ingredient.get('id')), recipe=recipe,
-                amount=ingredient.get('amount')) for ingredient in ingredients])
+                amount=ingredient.get('amount')
+            ) for ingredient in ingredients])
 
     def create(self, validated_data):
         """Метод создания рецепта"""
@@ -163,15 +164,15 @@ class RecipeSerializer(serializers.ModelSerializer):
     def get_is_favorited(self, obj):
         """Метод определения рецепта в избранном"""
         request = self.context.get('request')
-        return (not request.user.is_anonymous and
-                Favorite.objects.filter(
+        return (not request.user.is_anonymous
+                and Favorite.objects.filter(
                     user=request.user, recipe=obj).exists())
 
     def get_is_in_shopping_cart(self, obj):
         """Метод определения рецепта в избранном"""
         request = self.context.get('request')
-        return (not request.user.is_anonymous and
-                ShoppingCart.objects.filter(
+        return (not request.user.is_anonymous
+                and ShoppingCart.objects.filter(
                     user=request.user, recipe=obj).exists())
 
 
@@ -206,8 +207,8 @@ class SubscriptionsSerializer(serializers.ModelSerializer):
     def get_is_subscribed(self, obj):
         """Метод определения подписки на автора"""
         request = self.context.get('request')
-        return (not request.user == obj.author and
-                Subscription.objects.filter(
+        return (not request.user == obj.author
+                and Subscription.objects.filter(
                     user=request.user, author=obj.author).exists())
 
     def get_recipes(self, obj):
