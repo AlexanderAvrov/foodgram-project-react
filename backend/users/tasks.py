@@ -22,7 +22,7 @@ def email(recipes, recipient):
 @shared_task
 def new_recipes():
     """Отбор новых рецептов для подписчиков"""
-    users = User.objects.all()
+    users = User.objects.filter(subscriber__isnull=False)
     for user in users:
         subscriptions = Subscription.objects.filter(user=user)
         if subscriptions:

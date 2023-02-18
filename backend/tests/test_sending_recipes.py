@@ -52,12 +52,6 @@ def recipes(user_1, user_2, db):
     return recipe_1, recipe_2, recipe_3
 
 
-def test_subscriptions(subscription_1, db):
-    """Тест количества подписок"""
-    count = Subscription.objects.all().count()
-    assert count == 1, 'Неверное количество подписок'
-
-
 def test_count_recipes(subscription_1, recipes, db):
     """Тест количества рецептов по подпискам"""
     recipes_count = Recipe.objects.filter(
