@@ -11,8 +11,6 @@
 
 Инструменты и стек: #python #JSON #YAML #Django #React #Telegram #API #Docker #Nginx #PostgreSQL #Gunicorn #JWT #Postman
 
-### Ознакомиться с проектом можно по адресу:
-http://158.160.0.123/recipes
 
 ### Шаблон заполнения env-файла
 - DB_ENGINE=django.db.backends.postgresql `указываем, что работаем с postgresql`
