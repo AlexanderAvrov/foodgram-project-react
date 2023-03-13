@@ -40,7 +40,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user)
 
     @action(detail=False, methods=('get',),
-            url_name='download_shopping_cart', permission_classes=(IsAuthenticated,))
+            url_name='download_shopping_cart',
+            permission_classes=(IsAuthenticated,))
     def download_shopping_cart(self, request, *args, **kwargs):
         """Метод для скачивания списка покупок"""
         ingredients = download_ingredients(request.user)
